@@ -6,93 +6,66 @@ namespace FloatingApp
 {
     class Program : Form
     {
-        private bool isDragging = false;
-        private Point startPoint = new Point(0, 0);
+        private Point dragOffset;
         private Label timeLabel;
-        private Timer timer;
 
         public Program()
         {
-            // Konfigurasi utama form
-            this.Text = "Floating App";
-            this.FormBorderStyle = FormBorderStyle.None; // Hilangkan border
-            this.TopMost = true; // Selalu di atas
-            this.StartPosition = FormStartPosition.CenterScreen; // Mulai di tengah layar
-            this.BackColor = Color.Aquamarine; // Warna latar belakang
-            this.Size = new Size(300, 200); // Ukuran form
-            this.Opacity = 0.9; // Transparansi 90%
+            this.FormBorderStyle = FormBorderStyle.None;
+            this.TopMost = true;
+            this.BackColor = Color.FromArgb(40, 40, 40); // Dark background
+            this.Size = new Size(120, 40); // Reduced height
+            this.Opacity = 0.6;
+            this.KeyPreview = true; // Enable key events
+            this.StartPosition = FormStartPosition.Manual;
+            this.Location = new Point(Screen.PrimaryScreen.WorkingArea.Width - this.Width - 300, 5);
 
-            // Label untuk menampilkan waktu
-            timeLabel = new Label();
-            timeLabel.Font = new Font("Arial", 14, FontStyle.Bold); // Font custom
-            timeLabel.AutoSize = true; // Sesuaikan ukuran label dengan teks
-            timeLabel.ForeColor = Color.Black; // Warna teks
-            timeLabel.Location = new Point((this.ClientSize.Width - timeLabel.Width) / 2, 50); // Posisi tengah
-            timeLabel.TextAlign = ContentAlignment.MiddleCenter;
+            timeLabel = new Label
+            {
+                AutoSize = true,
+                Font = new Font("Arial", 14, FontStyle.Bold),
+                Location = new Point(30, 8), // Adjusted Y position
+                ForeColor = Color.LightGray // Light text color
+            };
             this.Controls.Add(timeLabel);
 
-            // Timer untuk memperbarui waktu setiap detik
-            timer = new Timer();
-            timer.Interval = 1000; // 1000 ms = 1 detik
-            timer.Tick += Timer_Tick;
+            var timer = new Timer { Interval = 1000 };
+            timer.Tick += (s, e) => 
+            {
+                timeLabel.Text = DateTime.Now.ToString("HH:mm:ss");
+                timeLabel.Location = new Point((ClientSize.Width - timeLabel.Width) / 2, 8); // Centered horizontally
+            };
             timer.Start();
 
-            // Tombol untuk menutup aplikasi
-            Button closeButton = new Button();
-            closeButton.Text = "Close";
-            closeButton.Size = new Size(80, 30);
-            closeButton.Location = new Point((this.ClientSize.Width - closeButton.Width) / 2, 120); // Posisi bawah
-            closeButton.Click += (s, e) => Application.Exit();
-            this.Controls.Add(closeButton);
-
-            // Event handler untuk drag form
-            this.MouseDown += new MouseEventHandler(Form_MouseDown);
-            this.MouseMove += new MouseEventHandler(Form_MouseMove);
-            this.MouseUp += new MouseEventHandler(Form_MouseUp);
-
-            // Update waktu pertama kali
-            UpdateTime();
-        }
-
-        private void Timer_Tick(object sender, EventArgs e)
-        {
-            UpdateTime();
-        }
-
-        private void UpdateTime()
-        {
-            timeLabel.Text = DateTime.Now.ToString("HH:mm:ss"); // Format jam:menit:detik
-            timeLabel.Location = new Point((this.ClientSize.Width - timeLabel.Width) / 2, 50); // Posisikan ulang agar tetap di tengah
-        }
-
-        // Event saat mouse ditekan
-        private void Form_MouseDown(object sender, MouseEventArgs e)
-        {
-            isDragging = true;
-            startPoint = new Point(e.X, e.Y);
-        }
-
-        // Event saat mouse digerakkan
-        private void Form_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (isDragging)
+            // Updated mouse drag events
+            Action<object, MouseEventArgs> mouseDown = (s, e) => { dragOffset = e.Location; };
+            Action<object, MouseEventArgs> mouseMove = (s, e) => 
             {
-                Point p = PointToScreen(e.Location);
-                this.Location = new Point(p.X - startPoint.X, p.Y - startPoint.Y);
-            }
-        }
+                if (e.Button == MouseButtons.Left)
+                {
+                    Point currentScreenPos = PointToScreen(e.Location);
+                    Location = new Point(currentScreenPos.X - dragOffset.X, currentScreenPos.Y - dragOffset.Y);
+                }
+            };
 
-        // Event saat mouse dilepaskan
-        private void Form_MouseUp(object sender, MouseEventArgs e)
-        {
-            isDragging = false;
+            // Apply mouse events to both form and label
+            this.MouseDown += new MouseEventHandler(mouseDown);
+            this.MouseMove += new MouseEventHandler(mouseMove);
+            timeLabel.MouseDown += new MouseEventHandler(mouseDown);
+            timeLabel.MouseMove += new MouseEventHandler(mouseMove);
+
+            // Add Esc key handler
+            this.KeyDown += (s, e) => 
+            {
+                if (e.KeyCode == Keys.Escape)
+                    Application.Exit();
+            };
         }
 
         [STAThread]
         static void Main()
         {
             Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Program());
         }
     }
