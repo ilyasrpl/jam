@@ -1,16 +1,25 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
 
 namespace FloatingApp
 {
     class Program : Form
     {
+        // Add constants
+        private const int WM_SYSCOMMAND = 0x0112;
+        private const int SC_CLOSE = 0xF060;
+        
         private Point dragOffset;
         private Label timeLabel;
 
         public Program()
         {
+
+            // hide from navbar
+            this.ShowInTaskbar = false;
+
             this.FormBorderStyle = FormBorderStyle.None;
             this.TopMost = true;
             this.BackColor = Color.FromArgb(40, 40, 40); // Dark background
@@ -19,6 +28,9 @@ namespace FloatingApp
             this.KeyPreview = true; // Enable key events
             this.StartPosition = FormStartPosition.Manual;
             this.Location = new Point(Screen.PrimaryScreen.WorkingArea.Width - this.Width - 300, 5);
+
+            // Set window style to tool window
+            SetWindowLong(this.Handle, -20, GetWindowLong(this.Handle, -20) | 0x80);
 
             timeLabel = new Label
             {
@@ -61,6 +73,23 @@ namespace FloatingApp
                     Application.Exit();
             };
         }
+
+        // Add WndProc override
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_SYSCOMMAND && m.WParam.ToInt32() == SC_CLOSE)
+            {
+                return; // Ignore close command
+            }
+            base.WndProc(ref m);
+        }
+
+        // Add P/Invoke declarations
+        [DllImport("user32.dll")]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
         [STAThread]
         static void Main()
