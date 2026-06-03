@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using Timer = System.Windows.Forms.Timer;
 using System.Runtime.InteropServices;
 using System.Net.NetworkInformation;
 using System.Collections.Generic;
@@ -13,7 +14,8 @@ namespace FloatingApp
         private const int WM_SYSCOMMAND = 0x0112;
         private const int SC_CLOSE = 0xF060;
         
-        private Point dragOffset;
+        private Point dragStartCursor;
+        private Point dragStartLocation;
         private Label timeLabel;
         private Label networkLabel;  // Changed: single label for network stats
         private Timer networkTimer;
@@ -62,14 +64,23 @@ namespace FloatingApp
             };
             timer.Start();
 
-            // Updated mouse drag events
-            Action<object, MouseEventArgs> mouseDown = (s, e) => { dragOffset = e.Location; };
-            Action<object, MouseEventArgs> mouseMove = (s, e) => 
+            // Updated mouse drag events (use screen coords to avoid jumps)
+            Action<object, MouseEventArgs> mouseDown = (s, e) =>
             {
                 if (e.Button == MouseButtons.Left)
                 {
-                    Point currentScreenPos = PointToScreen(e.Location);
-                    Location = new Point(currentScreenPos.X - dragOffset.X, currentScreenPos.Y - dragOffset.Y);
+                    dragStartCursor = Cursor.Position;
+                    dragStartLocation = Location;
+                }
+            };
+            Action<object, MouseEventArgs> mouseMove = (s, e) =>
+            {
+                if ((Control.MouseButtons & MouseButtons.Left) == MouseButtons.Left)
+                {
+                    Point currentCursor = Cursor.Position;
+                    int dx = currentCursor.X - dragStartCursor.X;
+                    int dy = currentCursor.Y - dragStartCursor.Y;
+                    Location = new Point(dragStartLocation.X + dx, dragStartLocation.Y + dy);
                 }
             };
 
@@ -77,7 +88,6 @@ namespace FloatingApp
             this.MouseDown += new MouseEventHandler(mouseDown);
             this.MouseMove += new MouseEventHandler(mouseMove);
             timeLabel.MouseDown += new MouseEventHandler(mouseDown);
-            timeLabel.MouseMove += new MouseEventHandler(mouseMove);
             timeLabel.MouseMove += new MouseEventHandler(mouseMove);
 
             // Add Esc key handler
