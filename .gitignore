@@ -1,0 +1,4 @@
+obj/*
+bin/*
+jam.csproj
+net8.0-windows/*
